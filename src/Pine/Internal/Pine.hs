@@ -21,6 +21,10 @@ import Control.Monad
 import Control.Monad.State
 import Data.Word (Word32)
 
+import Data.Vector (Vector)
+import qualified Data.Vector as V
+import Data.Maybe (fromJust)
+
 type TextureCache = Map FilePath SDL.Texture
 
 -- | This function initializes the window and takes an initial `Stateful` object that will be updated.
@@ -103,24 +107,25 @@ pine title windowConfig state_ = do
     drawScene' :: TextureCache -> Scene -> IO TextureCache
     drawScene' cache canvas = do
       case canvas of
-        SingleScene m -> loadMedia cache [m]
+        SingleScene m -> loadMedia cache $ V.singleton m
         MultiScene ms -> loadMedia cache ms
         EmptyScene    -> pure cache
 
-    loadMedia :: TextureCache -> [Media] -> IO TextureCache
-    loadMedia cache [] = pure cache
-    loadMedia cache (m:imgs) =
-      case m of
-        MImage img ->
-          case cache M.!? (imageSrc img) of
-            Nothing -> do
-              tex <- SDLI.loadTexture renderer (imageSrc img)
-              SDL.copy renderer tex Nothing Nothing
-              loadMedia (M.insert (imageSrc img) tex cache) imgs
-            Just tex -> do
-              SDL.copy renderer tex (imageQuad img) (imageRect img)
-              loadMedia cache imgs
-        _ -> loadMedia cache imgs
+    loadMedia :: TextureCache -> Vector Media -> IO TextureCache
+    loadMedia cache ms
+      | V.null ms = pure cache
+      | otherwise = let (m,rest) = fromJust $ V.uncons ms in
+        case m of
+          MImage img ->
+            case cache M.!? (imageSrc img) of
+              Nothing -> do
+                tex <- SDLI.loadTexture renderer (imageSrc img)
+                SDL.copy renderer tex Nothing Nothing
+                loadMedia (M.insert (imageSrc img) tex cache) rest
+              Just tex -> do
+                SDL.copy renderer tex (imageQuad img) (imageRect img)
+                loadMedia cache rest
+          _ -> loadMedia cache rest
 
    in appLoop mempty
 

@@ -6,6 +6,9 @@ import Foreign.C.Types (CInt)
 import Data.Int (Int32)
 import Linear (V2)
 
+import Data.Vector (Vector)
+import qualified Data.Vector as V
+
 import Data.Semigroup
 import Control.Monad.State -- see below
 
@@ -89,13 +92,13 @@ data Playback = Playback Audio | Continue Audio | Stop Audio deriving (Eq, Show)
 data Media = MImage Image | MAudio | MText deriving (Eq, Show) -- WIP (TODO: replace instances of Image in Scene with Media
 
 -- | A Scene can be empty, a single `Image`, or a group of `Image`s. (WIP: Later text and other stuff will be added)
-data Scene = EmptyScene | SingleScene Media | MultiScene [Media] deriving (Eq, Show)
+data Scene = EmptyScene | SingleScene Media | MultiScene (Vector Media) deriving (Eq, Show)
 
 instance Semigroup Scene where
-  (<>) (SingleScene img1) (SingleScene img2) = MultiScene [img1,img2]
+  (<>) (SingleScene img1) (SingleScene img2) = MultiScene $ V.fromList [img1,img2]
   (<>) (MultiScene imgs1) (MultiScene imgs2) = MultiScene $ imgs1 <> imgs2
-  (<>) (SingleScene img) (MultiScene imgs) = MultiScene $ img:imgs
-  (<>) (MultiScene imgs) (SingleScene img) = MultiScene $ imgs <> [img]
+  (<>) (SingleScene img) (MultiScene imgs) = MultiScene $ V.cons img imgs
+  (<>) (MultiScene imgs) (SingleScene img) = MultiScene $ V.snoc imgs img
   (<>) EmptyScene c = c
   (<>) c EmptyScene = c
 
@@ -106,6 +109,9 @@ instance Monoid Scene where
 -- | Convert a single `Image` into a `Scene`
 fromImage :: Image -> Scene
 fromImage = SingleScene . MImage
+
+fromImages :: Vector Image -> Scene
+fromImages = MultiScene . fmap MImage
 
 translateImg :: Image -> CInt -> CInt -> Image
 translateImg img x y =

@@ -13,6 +13,7 @@ module Pine
   , rect
   , Scene
   , fromImage
+  , fromImages
   , translateImg
   , translated
   , Event(..)

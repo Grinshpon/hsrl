@@ -3,14 +3,16 @@ module RL where
 
 import Pine
 import qualified SDL
-import Foreign.C.Types (CInt)
+import Foreign.C.Types (CInt (..))
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 
+import Data.Char (ord)
+
 data RLState = RLState
   { logo :: Image
-  , tileset :: Vector Image
+  , asciiSet :: Vector Image
   , consoleResolution :: (Int, Int) --should be CInt?
   , tileResolution :: (Int, Int)
   }
@@ -35,7 +37,16 @@ instance Stateful RLState where
   update _ _                         = cont
 
 instance Drawable RLState where
-  draw rl = fromImage $ (tileset rl) V.! 1 --translated 200 200 $ fromImage $ logo rl
+  draw rl = fromImages $ V.imap (\i c -> translateImg (aset V.! c) (xCoord i) (yCoord i)) (toAscii "Hello, World!")
+    where
+      aset = asciiSet rl
+      (w,_h) = consoleResolution rl
+      (sx,sy) = tileResolution rl
+      xCoord i = fromIntegral $ sx * (i `mod` w)
+      yCoord i = fromIntegral $ sy * (i `div` w)
+
+toAscii :: String -> Vector Int
+toAscii = V.fromList . (fmap ord)
 
 myConfig = withDefaultConfig
   { SDL.windowHighDPI = True
