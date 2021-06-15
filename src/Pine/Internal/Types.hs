@@ -114,5 +114,10 @@ translateImg img x y =
     Just (SDL.Rectangle pt dim) ->
       img { imageRect = Just $ SDL.Rectangle (pt + (SDLV.P $ SDLV.V2 x y)) dim }
 
-translated :: Scene -> CInt -> CInt -> Scene
-translated (SingleScene (MImage img)) x y = SingleScene $ MImage $ translateImg img x y
+translated :: CInt -> CInt -> Scene -> Scene
+translated x y (SingleScene (MImage img)) = SingleScene $ MImage $ translateImg img x y
+translated x y (MultiScene ms) = MultiScene $ fmap trans ms
+  where
+    trans m = case m of
+                MImage img -> MImage $ translateImg img x y
+                _ -> m

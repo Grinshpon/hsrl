@@ -38,7 +38,7 @@ myGrid = MyGrid
 
 data MyState = Logo Image
 
-defaultInitial = Logo $ newImage "src/Media/logo.png" Nothing (Just $ rect 200 200 400 400)
+defaultInitial = Logo $ newImage "src/Media/logo.png" Nothing (Just $ rect 0 0 400 400)
 
 instance Stateful MyState where
   update _ Load                      = contLog "Hello, Pine!"
@@ -47,7 +47,7 @@ instance Stateful MyState where
   update _ _                         = cont
 
 instance Drawable MyState where
-  draw (Logo img) = fromImage img
+  draw (Logo img) = translated 200 200 $ fromImage img
 
 main :: IO ()
 main = do

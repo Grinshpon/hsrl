@@ -13,6 +13,8 @@ module Pine
   , rect
   , Scene
   , fromImage
+  , translateImg
+  , translated
   , Event(..)
   , DeltaTime
   ) where
