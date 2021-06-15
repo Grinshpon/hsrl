@@ -127,3 +127,5 @@ translated x y (MultiScene ms) = MultiScene $ fmap trans ms
     trans m = case m of
                 MImage img -> MImage $ translateImg img x y
                 _ -> m
+
+-- todo: withColor or colored functions
