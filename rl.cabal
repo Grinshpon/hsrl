@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 852d605f3eaa458e4e3d4fb50b35311c359f8c58c1c666d5848e9c1aa3e57bfc
+-- hash: d915ed7004c281fdd9393cf58f2c987cf2dbb55bde8bbfa780d26d24dfb5fb54
 
 name:           rl
 version:        0.1.0.0
@@ -33,6 +33,7 @@ library
       Pine.Internal.Keyboard
       Pine.Internal.Pine
       Pine.Internal.Types
+      RL
   other-modules:
       Paths_rl
   hs-source-dirs:
