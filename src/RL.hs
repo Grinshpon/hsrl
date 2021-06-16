@@ -11,24 +11,21 @@ import qualified Data.Vector as V
 import Data.Char (ord)
 
 data RLState = RLState
-  { logo :: Image
-  , asciiSet :: Vector Image
-  , consoleResolution :: (Int, Int) --should be CInt?
-  , tileResolution :: (Int, Int)
+  { asciiSet :: Vector Image
+  , consoleResolution :: (CInt, CInt) --should be CInt?
+  , tileResolution :: (CInt, CInt)
   }
 
-defaultInitial = RLState
-  (newImage "src/Media/logo.png" Nothing (Just $ rect 0 0 400 400))
-  (tilesFromImg "src/Media/ascii.png" 10 10 1)
-  (100, 75)
-  (10, 10)
+defaultInitial :: (CInt, CInt) -> (CInt, CInt, CInt) -> RLState
+defaultInitial res (tWidth, tHeight, tScale) = RLState
+  (tilesFromImg "src/Media/ascii.png" tWidth tHeight tScale)
+  res
+  (tWidth*tScale, tWidth*tScale)
 
 tilesFromImg :: FilePath -> CInt -> CInt -> CInt -> Vector Image
 tilesFromImg fp w h scale =
   V.fromList
-    [newImage fp (Just $ rect (x*w) (y*h) w h) dim | y <- [0..15], x <- [0..15]]
-  where
-    dim = Just $ rect 0 0 (w*scale) (h*scale)
+    [newImage fp (Just $ rect (x*w) (y*h) w h) | y <- [0..15], x <- [0..15]]
 
 instance Stateful RLState where
   update _ Load                      = contLog "Hello, Pine!"
@@ -37,24 +34,30 @@ instance Stateful RLState where
   update _ _                         = cont
 
 instance Drawable RLState where
-  draw rl = fromImages $ V.imap (\i c -> translateImg (aset V.! c) (xCoord i) (yCoord i)) (toAscii "Hello, World!")
+  draw rl = fromImages $ V.imap (\i c -> (aset V.! c, Just $ rect (xCoord i) (yCoord i) sx sy)) (toAscii "Hello, World!")
     where
       aset = asciiSet rl
       (w,_h) = consoleResolution rl
       (sx,sy) = tileResolution rl
-      xCoord i = fromIntegral $ sx * (i `mod` w)
-      yCoord i = fromIntegral $ sy * (i `div` w)
+      xCoord i = sx * (fromIntegral i `mod` w)
+      yCoord i = sy * (fromIntegral i `div` w)
 
 toAscii :: String -> Vector Int
 toAscii = V.fromList . (fmap ord)
 
-myConfig = withDefaultConfig
+myConfig w h = withDefaultConfig
   { SDL.windowHighDPI = True
-  , SDL.windowInitialSize = SDL.V2 1000 750
+  , SDL.windowInitialSize = SDL.V2 w h
   }
 
--- brogue is about 100x34 "tiles" (manually counted)
+-- brogue is about 100x34 rectangular tiles (manually counted)
 -- I'm thinking of doing 100x75 square tiles (4:3)
 
 runRL :: IO ()
-runRL = pine "Hello Pine" myConfig defaultInitial
+runRL = pine "Hello Pine" config initState
+  where
+    --initState = defaultInitial (100, 75) (10, 10, 2)
+    initState = defaultInitial (60, 30) (10, 10, 4)
+    (w,h) = consoleResolution initState
+    (sw,sh) = tileResolution initState
+    config = myConfig (w*sw) (h*sh)

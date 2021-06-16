@@ -12,6 +12,8 @@ import qualified Data.Vector as V
 import Data.Semigroup
 import Control.Monad.State -- see below
 
+type Rectangle = SDL.Rectangle CInt
+
 data Event
   = Load -- ^ very first event to be called
   | Step -- ^ Other events may be called multiple times per frame, but the Step event occurs once per frame
@@ -60,8 +62,8 @@ class Stateful s where
 -- | An Image which is converted into a `Texture`
 data Image = Image
   { imageSrc  :: FilePath -- ^ source file
-  , imageQuad :: Maybe (SDL.Rectangle CInt) -- ^ quad, or Nothing for entire image
-  , imageRect :: Maybe (SDL.Rectangle CInt) -- ^ location and dimensions, or Nothing to fit entire window
+  , imageQuad :: Maybe Rectangle -- ^ quad, or Nothing for entire image
+  --, imageRect :: Maybe (Rectangle) -- ^ location and dimensions, or Nothing to fit entire window
   } deriving (Eq, Show) -- put in other info later (like dimensions, quads, etc)
 
 -- | Construct a rectangle
@@ -70,15 +72,16 @@ rect :: ()
      -> CInt -- ^ y
      -> CInt -- ^ w
      -> CInt -- ^ h
-     -> SDL.Rectangle CInt
+     -> Rectangle
 rect x y w h = SDL.Rectangle (SDLV.P $ SDLV.V2 x y) (SDLV.V2 w h)
 
 
 -- | Create an image from a file
 newImage :: ()
          => FilePath -- ^ The source of the image file
-         -> Maybe (SDL.Rectangle CInt) -- ^ A quad or Nothing for the whole image
-         -> Maybe (SDL.Rectangle CInt) -> Image -- ^ The rendering target: The location of the image on the window and its size, or Nothing to take up the whole window.
+         -> Maybe Rectangle -- ^ A quad or Nothing for the whole image
+         -- -> Maybe Rectangle  -- ^ The rendering target: The location of the image on the window and its size, or Nothing to take up the whole window.
+         -> Image
 newImage = Image
 
 newtype Audio = Audio -- WIP
@@ -89,7 +92,7 @@ data AudioState = Playing Audio | Stopped Audio deriving (Eq, Show) --WIP
 
 data Playback = Playback Audio | Continue Audio | Stop Audio deriving (Eq, Show) -- WIP
 
-data Media = MImage Image | MAudio | MText deriving (Eq, Show) -- WIP (TODO: replace instances of Image in Scene with Media
+data Media = MImage Image (Maybe Rectangle) | MAudio | MText deriving (Eq, Show) -- WIP (TODO: replace instances of Image in Scene with Media
 
 -- | A Scene can be empty, a single `Image`, or a group of `Image`s. (WIP: Later text and other stuff will be added)
 data Scene = EmptyScene | SingleScene Media | MultiScene (Vector Media) deriving (Eq, Show)
@@ -107,25 +110,27 @@ instance Monoid Scene where
   mappend = (<>)
 
 -- | Convert a single `Image` into a `Scene`
-fromImage :: Image -> Scene
-fromImage = SingleScene . MImage
+fromImage :: Image -> Maybe Rectangle -> Scene
+fromImage = SingleScene ... MImage
+  where (...) = ((.) . (.))
 
-fromImages :: Vector Image -> Scene
-fromImages = MultiScene . fmap MImage
+fromImages :: Vector (Image, Maybe Rectangle) -> Scene
+fromImages = MultiScene . fmap (uncurry MImage)
 
-translateImg :: Image -> CInt -> CInt -> Image
-translateImg img x y =
-  case imageRect img of
-    Nothing -> img
-    Just (SDL.Rectangle pt dim) ->
-      img { imageRect = Just $ SDL.Rectangle (pt + (SDLV.P $ SDLV.V2 x y)) dim }
+--translateImg :: Image -> CInt -> CInt -> Image
+--translateImg img x y =
+--  case imageRect img of
+--    Nothing -> img
+--    Just (SDL.Rectangle pt dim) ->
+--      img { imageRect = Just $ SDL.Rectangle (pt + (SDLV.P $ SDLV.V2 x y)) dim }
 
 translated :: CInt -> CInt -> Scene -> Scene
-translated x y (SingleScene (MImage img)) = SingleScene $ MImage $ translateImg img x y
+translated x y (SingleScene (MImage img (Just (SDL.Rectangle pt dim)))) = SingleScene $ MImage img $ Just $ SDL.Rectangle (pt + (SDLV.P $ SDLV.V2 x y)) dim
 translated x y (MultiScene ms) = MultiScene $ fmap trans ms
   where
     trans m = case m of
-                MImage img -> MImage $ translateImg img x y
+                MImage img (Just (SDL.Rectangle pt dim))-> MImage img $ Just $ SDL.Rectangle (pt + (SDLV.P $ SDLV.V2 x y)) dim
                 _ -> m
+translated _ _ s = s
 
 -- todo: withColor or colored functions

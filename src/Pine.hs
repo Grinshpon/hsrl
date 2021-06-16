@@ -14,7 +14,7 @@ module Pine
   , Scene
   , fromImage
   , fromImages
-  , translateImg
+  --, translateImg
   , translated
   , Event(..)
   , DeltaTime

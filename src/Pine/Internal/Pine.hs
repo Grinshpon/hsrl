@@ -90,7 +90,7 @@ pine title windowConfig state_ = do
         Cont          -> updateEvents dt es nState
         Log s         -> putStrLn s *> (updateEvents dt es nState)
         QuitWithLog s -> putStrLn s *> (pure $ Nothing)
-        Quit          -> pure $ Nothing
+        Quit          -> pure Nothing
 
     fpsTimer :: TChan () -> Word32 -> IO SDL.RetriggerTimer
     fpsTimer updateQueue _ = do
@@ -116,14 +116,14 @@ pine title windowConfig state_ = do
       | V.null ms = pure cache
       | otherwise = let (m,rest) = fromJust $ V.uncons ms in
         case m of
-          MImage img ->
+          MImage img rect ->
             case cache M.!? (imageSrc img) of
               Nothing -> do
                 tex <- SDLI.loadTexture renderer (imageSrc img)
                 SDL.copy renderer tex Nothing Nothing
                 loadMedia (M.insert (imageSrc img) tex cache) rest
               Just tex -> do
-                SDL.copy renderer tex (imageQuad img) (imageRect img)
+                SDL.copy renderer tex (imageQuad img) rect
                 loadMedia cache rest
           _ -> loadMedia cache rest
 
